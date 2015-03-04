@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'bundler'
+rescue LoadError
+  abort "You need to install bundler gem first"
+end
+
+begin
+  Bundler.require(:default)
+rescue LoadError
+  abort "You need to install dependecies. Run: cd #{__dir__} && bundle install"
+end
+
+module TopN
+  class Sorters
+    def initialize(array)
+      @array = array
+    end
+
+    def bubble
+      return @array if @array.size <= 1
+
+      swapped = true
+      while swapped do
+        swapped = false
+        0.upto(@array.size-2) do |i|
+          if @array[i] < @array[i + 1]
+            @array[i], @array[i + 1] = @array[i + 1], @array[i]
+            swapped = true
+          end
+        end
+      end
+
+      @array
+    end
+
+    def native
+      @array.sort { |x, y| y <=> x }
+    end
+  end
+
+  class Runner < Thor::Group
+    argument :n, type: :numeric
+
+    class_option :file, aliases: 'f', type: :string, default: File.join(__dir__, 'input.txt')
+    class_option :method, aliases: 'm', type: :string, default: 'native', enum: ['bubble', 'native']
+
+    def load_data
+      @data = IO.readlines(options[:file]).map &:to_i
+    rescue SystemCallError
+      abort 'Cannot load file'
+    end
+
+    def do
+      sorter = Sorters.new @data
+
+      say sorter.send(options[:method])[0, n].inspect
+    end
+  end
+end
+
+TopN::Runner.start
